@@ -1,0 +1,57 @@
+{
+    "editors":{
+        "notepad++":{
+            "name":"notepad++",
+            "aliases":["n++","npp","notepadpp","notepadplusplus"],
+            "command":"\"C:\\Program Files (x86)\\Notepad++\\notepad++.exe\" \"{filename}\" -n{row}"
+        },
+        "visual studio code":{
+            "name":"visual studio code",
+            "aliases":["visualstudiocode","vscode","code"],
+            "command":"code --goto \"{filename}:{row}:{col}\""
+        },
+        "visual studio":{
+            "name":"visual studio",
+            "aliases":["visualstudio","microsoftvisualstudio","msvisualstudio","msvs","vs","visualcplusplus",
+                "visualc++","visualcpp","vsc++","vscpp","vcpp","msvisualc++","microsoftvisualc++","devenv"],
+            "command":"visualStudioController \"--open={filename}:{row}\""
+        },
+        "windows explorer":{
+            "name":"windows explorer",
+            "aliases":["explorer"],
+            "command":"explorer \"{filename}\""
+        }
+    },
+    "filetypes":[
+        {
+            "name":"c/c++ source",
+            "extensions":["*.c","*.cpp","*.cxx"],
+            "editors":["visual studio code","visual studio","notepad++"]
+        },
+        {
+            "name":"c/c++ headers",
+            "extensions":["*.h","*.hpp","*.hxx"],
+            "editors":["visual studio code","visual studio","notepad++"]
+        },
+        {
+            "name":"python source",
+            "extensions":["*.py","*.pyw"],
+            "editors":["visual studio code","notepad++"]
+        },
+        {
+            "name":"javascript source",
+            "extensions":["*.js","*.jsx"],
+            "editors":["visual studio code","notepad++"]
+        },
+        {
+            "name":"typescript source",
+            "extensions":["*.ts","*.tsx"],
+            "editors":["visual studio code","notepad++"]
+        },
+        {
+            "name":"directory",
+            "extensions":["*"],
+            "editors":["windows explorer"]
+        }
+    ]
+}
