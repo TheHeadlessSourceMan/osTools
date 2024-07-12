@@ -56,6 +56,7 @@ confidence=
 # --disable=W"
 disable=
         unrecognized-option,
+        c-extension-no-member,
         unknown-option-value,
         superfluous-parens,
         disallowed-name,

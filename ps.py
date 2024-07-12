@@ -2,20 +2,22 @@
 Tools to run powershell commands and interperet the results in a pythonic way
 """
 import typing
-from collections.abc import Iterable
 import re
 import k_runner.osrun as osrun
 
 CmdCompatible=typing.Union[str,typing.Iterable[str]]
 PsDataResult=typing.Dict[str,str]
 
+
 psTableHeader = re.compile(r'[^\s]+')
-def psTableDissect(lines:typing.Union[typing.List[str],str])->typing.Iterable[PsDataResult]:
+def psTableDissect(
+    lines:typing.Union[typing.List[str],str]
+    )->typing.Iterable[PsDataResult]:
     """
     convert a powershell-formatted table into something useable
-    
+
     :lines: either a list of lines or a string to split using '\n'
-    
+
     returns json-compatible [{k:v},...]
     """
     if isinstance(lines,str):
@@ -48,14 +50,14 @@ def psTableDissect(lines:typing.Union[typing.List[str],str])->typing.Iterable[Ps
 def psColonListDissect(lines:typing.Union[typing.List[str],str])->PsDataResult:
     """
     convert a powershell-formatted key:value list into something useable
-    
+
     eg
         thisitem    : 1
         anotheritem : 2
         ...
-    
+
     :lines: either a list of lines or a string to split using '\n'
-    
+
     returns json-compatible {k:v}
     """
     ret={}
@@ -92,12 +94,12 @@ def psCommandWithTableOutput(cmd:CmdCompatible)->typing.Iterable[PsDataResult]:
 def psCommandWithColonListOutput(cmd:CmdCompatible)->PsDataResult:
     """
     Run a powershell command that expects a colon as output
-    
+
     eg
         thisitem    : 1
         anotheritem : 2
         ...
-    
+
     result will be converted to {k:v} with psColonListDissect()
     """
     return psColonListDissect(psCommand(cmd))
@@ -112,7 +114,7 @@ def cmdline(args:typing.Iterable[str])->int:
     didSomething=False
     printhelp=False
     output=''
-    if not isinstance(args,Iterable) or isinstance(args,str):
+    if not isinstance(args,list):
         args=list(args)
     for i, arg in enumerate(args):
         if arg.startswith('-'):
@@ -136,13 +138,14 @@ def cmdline(args:typing.Iterable[str])->int:
             else:
                 print(psCommand(args[i:]))
             break
-            
+
     if printhelp or not didSomething:
         print('USEAGE:')
         print('  ps [options] [commands]')
         print('OPTIONS:')
         print('  -h ................................. this help')
-        print('  --output=list|table ................ specify output type to dissect (default=none)')
+        print('  --output=list|table ................ specify output type ')
+        print('                                  to dissect (default=none)')
         return 1
     return 0
 

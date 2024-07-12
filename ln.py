@@ -9,10 +9,14 @@ import typing
 import os
 import sys
 import subprocess
-    
+
 def unlink(path:str)->None:
+    """
+    Remove a symbolic link
+    """
     cmd='rmdir "%s"'%path
-    po=subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    po=subprocess.Popen(cmd,shell=True,
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     _,errb=po.communicate()
     err=errb.decode('utf-8',errors='ignore').strip()
     if err:
@@ -28,7 +32,7 @@ def linkTarget(path:str)->str:
     NOTE: can follow a series of links/shortcuts and has
         loop detection for safety
 
-    NOTE: helpfully, if you pass an actual file's path in, 
+    NOTE: helpfully, if you pass an actual file's path in,
         will still return the same path back out.
         Eg:
             given: "linkname" links to "filename"
@@ -42,7 +46,8 @@ def linkTarget(path:str)->str:
             raise Exception(f'Circular link "{ret}"')
         visited.add(ret)
         cmd=['powershell','-command','(Get-Item',ret,').Target']
-        po=subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        po=subprocess.Popen(cmd,shell=True,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         #print('$>',' '.join(cmd))
         out,err=po.communicate()
         err=err.strip()
@@ -53,8 +58,14 @@ def linkTarget(path:str)->str:
         if not changed or changed==ret: # no change
             if ret.endswith('.lnk'):
                 # check .lnk shortcut
-                cmd2=['powershell','-command','(New-Object','-ComObject',f"WScript.Shell).CreateShortcut('{ret}').TargetPath"]
-                po=subprocess.Popen(cmd2,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                cmd2=[
+                    'powershell',
+                    '-command',
+                    '(New-Object',
+                    '-ComObject',
+                    f"WScript.Shell).CreateShortcut('{ret}').TargetPath"]
+                po=subprocess.Popen(cmd2,shell=True,
+                    stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 #print('$>',' '.join(cmd2))
                 out,err=po.communicate()
                 err=err.strip()
@@ -68,6 +79,9 @@ def linkTarget(path:str)->str:
     return ret
 
 def ln(fromPath:str,toPath:str)->None:
+    """
+    Create a symbolic link (even works on windows!)
+    """
     if os.sep!='/':
         fromPath=fromPath.replace('/',os.sep)
         toPath=toPath.replace('/',os.sep)
@@ -76,11 +90,15 @@ def ln(fromPath:str,toPath:str)->None:
         cmd.append('/D')
     cmd.append(toPath)
     cmd.append(fromPath)
-    po=subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    po=subprocess.Popen(cmd,shell=True,
+        stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     out,_=po.communicate()
     print(out.decode('utf-8'))
-   
+
 def cmdline(args:typing.Iterable[str])->int:
+    """
+    Run this file from the command line
+    """
     printhelp=False
     fromTo=[]
     behaviour='link'
@@ -112,7 +130,7 @@ def cmdline(args:typing.Iterable[str])->int:
             print('Unknown useage')
             printhelp=True
         else:
-            ln(*fromTo)
+            ln(fromTo[0],fromTo[1])
     elif behaviour=='unlink':
         if len(fromTo)!=1:
             print('Unknown useage')
@@ -136,8 +154,7 @@ def cmdline(args:typing.Iterable[str])->int:
         print('   -t,--target .... get the target instead')
         return -1
     return 0
-        
-        
+
+
 if __name__=='__main__':
-    import sys
     sys.exit(cmdline(sys.argv[1:]))

@@ -105,7 +105,8 @@ class _EnvironmentVariables:
 
     def get(self,k:str,default:typing.Any=None)->typing.Any:
         """
-        Get the specified item as a mixed-type item or a list of mixed-type items
+        Get the specified item as a mixed-type item
+        or a list of mixed-type items
         """
         v=self.getList(k,default)
         if v is not None and len(v)==1:
@@ -119,11 +120,13 @@ class _EnvironmentVariables:
         """
         set an item
 
-        :append: if value already exists, then append to it with the os separator, 
-            otherwise will overwrite the old value (if unspecified, will try to guess based upon whether
+        :append: if value already exists, then append to it with the
+            os separator, otherwise will overwrite the old value
+            (if unspecified, will try to guess based upon whether
             existing value is a list)
         :permanent: make changes to os env, not just for this session
-        :allusers: if makeing changes to os env, apply to all users (False=just current user)
+        :allusers: if makeing changes to os env, apply to all users
+            (False=just current user)
         """
         if not isinstance(k,str):
             k=str(k)
@@ -153,13 +156,14 @@ class _EnvironmentVariables:
         # make changes permanent if requested
         if permanent:
             if os.name=='nt':
-                cmd=['setx'] # run "setx /?" from the command line for more info
+                cmd=['setx'] # run "setx /?" from command line for more info
                 if allusers:
                     cmd.append('/M')
                 cmd.append('"%s"'%k)
                 cmd.append('"%s"'%v)
                 # TODO: must be elevated to work?
-                po=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                po=subprocess.Popen(cmd,
+                    stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 _,errb=po.communicate()
                 err=errb.decode('utf-8',errors='ignore').strip()
                 if err:
@@ -173,7 +177,7 @@ class _EnvironmentVariables:
     setList=set
     setStr=set
     setStrList=set
-        
+
 # global and its aliases
 EnvironmentVariables=_EnvironmentVariables()
 environmentVariables=EnvironmentVariables
