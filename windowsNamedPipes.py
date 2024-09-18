@@ -2,6 +2,7 @@
 List named pipes in windows
 """
 import typing
+import typing
 import time
 import subprocess
 import win32pipe # type: ignore
@@ -11,7 +12,7 @@ import win32file # type: ignore
 
 def listPipes()->typing.Iterable[str]:
     """
-    List all named pipes in use on the system
+    Generate a list of all windows named pipes
     """
     cmd=['powershell','-c','get-childitem',r'\\.\pipe\\']
     po=subprocess.Popen(cmd,stdout=subprocess.PIPE)
@@ -19,7 +20,7 @@ def listPipes()->typing.Iterable[str]:
     out,_=po.communicate()
     if not isinstance(out,str):
         out=out.decode('utf-8',errors='ignore')
-    return [l.rstrip() for l in out.split('\n')]
+    return [x.rstrip() for x in out.split('\n')]
 
 
 def pipe_server():

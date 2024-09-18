@@ -15,6 +15,7 @@ def skipEmptyines(lines:typing.Union[str,typing.Iterable[str]]
         if line:
             yield line
 
+
 class StrWithFileLocation:
     """
     A string with the file location reference where it came from

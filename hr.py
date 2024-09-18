@@ -2,6 +2,7 @@
 a console horizontal rule
 """
 
+
 def hr(msg:str='',ch:str='-',width:int=80):
     """
     a console horizontal rule

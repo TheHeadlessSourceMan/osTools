@@ -5,7 +5,7 @@ and what process is the culprit
 see also:
     instructions - https://devblogs.microsoft.com/oldnewthing/20120217-00/?p=8283
     dll reference - https://docs.microsoft.com/en-us/windows/win32/api/restartmanager/nf-restartmanager-rmgetlist
-"""
+""" # noqa: E501 # pylint: disable=line-too-long
 import typing
 import os
 from dataclasses import dataclass
@@ -59,20 +59,18 @@ class RM_PROCESS_INFO(ctypes.Structure):
         ("AppStatus",ctypes.c_uint),
         ("TSSessionId",ctypes.c_uint),
         ("bRestartable",ctypes.c_bool)]
-
-c_uint_p=ctypes.POINTER(ctypes.c_uint)
-RM_PROCESS_INFO_p=ctypes.POINTER(RM_PROCESS_INFO)
-rstrtmgr.RmStartSession.restype=ctypes.c_uint
-rstrtmgr.RmStartSession.argtypes=c_uint_p,ctypes.c_uint,ctypes.c_wchar_p
-rstrtmgr.RmRegisterResources.restype=ctypes.c_uint
-rstrtmgr.RmRegisterResources.argtypes=\
-    ctypes.c_uint,ctypes.c_uint,ctypes.POINTER(ctypes.c_wchar_p),\
-    ctypes.c_uint,ctypes.c_void_p,ctypes.c_uint,ctypes.c_void_p
-rstrtmgr.RmGetList.restype=ctypes.c_uint
-rstrtmgr.RmGetList.argtypes=\
-    ctypes.c_uint,c_uint_p,c_uint_p,RM_PROCESS_INFO_p,c_uint_p
-rstrtmgr.RmEndSession.restype=ctypes.c_uint
-rstrtmgr.RmEndSession.argtypes=[ctypes.c_uint]
+    raise NotImplementedError()
+    # TODO: I don't know what this is, but it looks incomplete
+    # c_uint_p=ctypes.POINTER(ctypes.c_uint)
+    # RM_PROCESS_INFO_p=ctypes.POINTER(RM_PROCESS_INFO)
+    # rstrtmgr.RmStartSession.restype=ctypes.c_uint
+    # rstrtmgr.RmStartSession.argtypes=c_uint_p,ctypes.c_uint,ctypes.c_wchar_p
+    # rstrtmgr.RmRegisterResources.restype=ctypes.c_uint
+    # rstrtmgr.RmRegisterResources.argtypes=ctypes.c_uint,ctypes.c_uint,ctypes.POINTER(ctypes.c_wchar_p),ctypes.c_uint,ctypes.c_void_p,ctypes.c_uint,ctypes.c_void_p
+    # rstrtmgr.RmGetList.restype=ctypes.c_uint
+    # rstrtmgr.RmGetList.argtypes=ctypes.c_uint,c_uint_p,c_uint_p,RM_PROCESS_INFO_p,c_uint_p
+    # rstrtmgr.RmEndSession.restype=ctypes.c_uint
+    # rstrtmgr.RmEndSession.argtypes=[ctypes.c_uint]
 
 @dataclass
 class ProcessInfo:
@@ -103,7 +101,8 @@ class ProcessInfo:
     @property
     def processKernelTime(self)->int:
         """
-        How much kernal time the process is consuming
+        Relative measure of how much time the process is consuming
+        in the kernel space
         """
         if self._processKernelTime is None:
             self._getProcessInfo()
@@ -114,7 +113,8 @@ class ProcessInfo:
     @property
     def processUserTime(self)->int:
         """
-        How much user-mode time the process is consuming
+        Relative measure of how much time the process is consuming
+        in the user space
         """
         if self._processUserTime is None:
             self._getProcessInfo()
@@ -134,6 +134,9 @@ class ProcessInfo:
         return self._fullName
 
     def _getProcessInfo(self):
+        """
+        Fetch the process info from the system
+        """
         ftCreate=FILETIME(0)
         ftExit=FILETIME(0)
         ftKernel=FILETIME(0)
@@ -142,6 +145,10 @@ class ProcessInfo:
             hProcess=win32api.OpenProcess(
                 win32con.PROCESS_QUERY_LIMITED_INFORMATION,
                 pywintypes.FALSE,
+                self.pid)
+            hProcess=win32api.OpenProcess(
+                win32con.PROCESS_QUERY_LIMITED_INFORMATION,
+                False,
                 self.pid)
             if hProcess:
                 processStartTime=ctypes.c_uint(self.processStartTime)
@@ -159,9 +166,7 @@ class ProcessInfo:
                     imageName=ctypes.c_wchar*win32con.MAX_PATH
                     imageNameLen=ctypes.c_uint(win32con.MAX_PATH)
                     if win32api.QueryFullProcessImageNameW(
-                        hProcess,
-                        0,
-                        imageName,
+                        hProcess,0,imageName,
                         ctypes.pointer(imageNameLen)) \
                         and imageNameLen<=win32con.MAX_PATH:
                         #
@@ -189,14 +194,14 @@ class ProcessInfo:
 def processLockingFile(
     filename:str,
     recursive:bool=False,
-    ignore:typing.Iterable[str]=(),
+    ignore:typing.Optional[typing.Iterable[str]]=None,
     noExpand:bool=False
     )->typing.Generator[ProcessInfo,None,None]:
     """
     Determine all processes that have locked a given file.
 
-    :recursive: if filename is a directory, keep going with
-        subdirectories and files
+    :recursive: if filename is a directory, keep going
+        with subdirectories and files
     :noExpand: do not try to expand shell variables in the filename
         (main purpose is so this can be called recursively)
 
@@ -211,6 +216,8 @@ def processLockingFile(
         filename=os.path.abspath(os.path.expandvars(filename))
     if filename in ignore:
         return
+    if ignore is None:
+        ignore=tuple()
     print(f'Checking "{filename}"')
     if not isinstance(ignore,list):
         ignore=list(ignore)
@@ -218,7 +225,7 @@ def processLockingFile(
     dwSession=ctypes.c_uint()
     szSessionKey=ctypes.create_unicode_buffer(CCH_RM_SESSION_KEY+1)
     dwError=rstrtmgr.RmStartSession(ctypes.pointer(dwSession),0,szSessionKey)
-    #print(f'RmStartSession key={szSessionKey.value} sess={dwSession.value}')
+    #print(f'RmStartSession key={szSessionKey.value} session={dwSession.value}') # noqa: E501 # pylint: disable=line-too-long
     if dwError!=0: # success
         raise Exception('[Windows error 0x%02X] %s'%(
             dwError,win32api.FormatMessage(dwError)))
@@ -250,13 +257,12 @@ def processLockingFile(
             ctypes.byref(nProcInfo),
             pRgpi,
             ctypes.byref(dwReason))
+    # See also:
+    # https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
     if dwError!=0:
-        # see also:
-        # https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
         raise Exception('[Windows error 0x%02X] %s'%(
             dwError,win32api.FormatMessage(dwError)))
-    #print(f'RmGetList returned {nProcInfo.value} infos (
-    #   {nProcInfoNeeded} needed)')
+    #print(f'RmGetList returned {nProcInfo.value} infos ({nProcInfoNeeded} needed)') # noqa: E501 # pylint: disable=line-too-long
     for i in range(nProcInfo.value):
         pi=ProcessInfo(
             rgpi[i].strAppName,
@@ -269,6 +275,11 @@ def processLockingFile(
         for f in os.listdir(filename):
             yield from processLockingFile(
                 os.sep.join((filename,f)),recursive,ignore,True)
+            yield from processLockingFile(
+                os.sep.join((filename,f)),
+                recursive,
+                ignore,
+                True)
 
 def cmdline(args:typing.Iterable[str])->int:
     """
@@ -300,8 +311,7 @@ def cmdline(args:typing.Iterable[str])->int:
         print('USEAGE:')
         print('  whoLockedFile [options] [filename]')
         print('OPTIONS:')
-        print('  -r ............................. recursive')
-        print('               (keep going till you find one)')
+        print('  -r ............................. recursive (keep going till you find one)') # noqa: E501 # pylint: disable=line-too-long
         print('  -h ............................. this help')
         return 1
     return 0

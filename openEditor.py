@@ -21,6 +21,7 @@ def globsToRe(globs:typing.Iterable[str])->typing.Pattern:
         for glob in globs])
     return re.compile(regex,re.IGNORECASE)
 
+
 class FileType:
     """
     Indicates a given file type
@@ -50,6 +51,7 @@ class _Editors:
     """
     A list of editors
     """
+
     def __init__(self):
         self.json:typing.Dict[str,typing.Any]={}
         self.aliases:typing.Dict[str,str]={}
@@ -73,9 +75,9 @@ class _Editors:
         """
         return self.json["editors"].keys()
 
-    def load(self,filename:typing.Optional[str]=None):
+    def load(self,filename=None):
         """
-        load from a file
+        Load a list of editors
         """
         if filename is None:
             filename=__file__.rsplit('.',1)[0]+'.json'
@@ -140,6 +142,10 @@ class _Editors:
             .replace('{filename}',os.path.abspath(fileLocation.filename))\
             .replace('{row}',str(fileLocation.row))\
             .replace('{col}',str(fileLocation.col))
+        fullFilename=os.path.abspath(fileLocation.filename)
+        cmd=template.replace('{filename}',fullFilename)\
+            .replace('{row}',str(fileLocation.row))\
+            .replace('{col}',str(fileLocation.col))
         print(cmd)
         OsRun(cmd,shell=True,detatch=True).runAsync()
     open=openEditor
@@ -149,6 +155,7 @@ class _Editors:
         return self
 Editors=_Editors()
 EDITORS=Editors
+
 
 def openEditor(
     fileLocation:typing.Union[str,FileLocation],
