@@ -12,15 +12,20 @@ import subprocess
 
 def unlink(path:str)->None:
     """
-    Remove a symbolic link
+    Remove a symlink if it exists
+    fail silently if it does not
     """
     cmd='rmdir "%s"'%path
-    po=subprocess.Popen(cmd,shell=True,
+    po=subprocess.Popen(
+        cmd,shell=True,
         stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     _,errb=po.communicate()
     err=errb.decode('utf-8',errors='ignore').strip()
     if err:
         if err.startswith('The system cannot find the file specified'):
+            # if it doesn't exist, then it's already "unlinked"!
+            return
+        if err.startswith('The directory name is invalid'):
             # if it doesn't exist, then it's already "unlinked"!
             return
         raise Exception(err)
@@ -58,13 +63,12 @@ def linkTarget(path:str)->str:
         if not changed or changed==ret: # no change
             if ret.endswith('.lnk'):
                 # check .lnk shortcut
-                cmd2=[
-                    'powershell',
-                    '-command',
+                cmd2=['powershell','-command',
                     '(New-Object',
                     '-ComObject',
                     f"WScript.Shell).CreateShortcut('{ret}').TargetPath"]
-                po=subprocess.Popen(cmd2,shell=True,
+                po=subprocess.Popen(
+                    cmd2,shell=True,
                     stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 #print('$>',' '.join(cmd2))
                 out,err=po.communicate()
@@ -97,7 +101,7 @@ def ln(fromPath:str,toPath:str)->None:
 
 def cmdline(args:typing.Iterable[str])->int:
     """
-    Run this file from the command line
+    Run this from the command line
     """
     printhelp=False
     fromTo=[]

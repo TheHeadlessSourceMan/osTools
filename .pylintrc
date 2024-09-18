@@ -55,6 +55,7 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 disable=
+        c-extension-no-member,
         unrecognized-option,
         c-extension-no-member,
         unknown-option-value,

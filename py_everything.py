@@ -1,11 +1,10 @@
 """
 Access voidtools everything search on windows from python
 this comes from the officimal example at:
-       https://www.voidtools.com/support/everything/sdk/python/
+      https://www.voidtools.com/support/everything/sdk/python/
 and may or may not require their sdk
       https://www.voidtools.com/support/everything/sdk/
 """
-#import typing
 import ctypes
 import datetime
 import struct
@@ -30,19 +29,20 @@ EVERYTHING_REQUEST_HIGHLIGHTED_FULL_PATH_AND_FILE_NAME=0x00008000
 
 #dll imports
 everything_dll=ctypes.WinDLL("C:\\EverythingSDK\\DLL\\Everything32.dll")
-everything_dll.Everything_GetResultDateModified.argtypes=\
-    [ctypes.c_int,ctypes.POINTER(ctypes.c_ulonglong)]
-everything_dll.Everything_GetResultSize.argtypes=\
-    [ctypes.c_int,ctypes.POINTER(ctypes.c_ulonglong)]
-everything_dll.Everything_GetResultFileNameW.argtypes=[ctypes.c_int]
+everything_dll.Everything_GetResultDateModified.argtypes=[
+    ctypes.c_int,ctypes.POINTER(ctypes.c_ulonglong)]
+everything_dll.Everything_GetResultSize.argtypes=[
+    ctypes.c_int,ctypes.POINTER(ctypes.c_ulonglong)]
+everything_dll.Everything_GetResultFileNameW.argtypes=[
+    ctypes.c_int]
 everything_dll.Everything_GetResultFileNameW.restype=ctypes.c_wchar_p
 
 #setup search
 everything_dll.Everything_SetSearchW("test.py")
 everything_dll.Everything_SetRequestFlags(
-    EVERYTHING_REQUEST_FILE_NAME|
-    EVERYTHING_REQUEST_PATH|
-    EVERYTHING_REQUEST_SIZE|
+    EVERYTHING_REQUEST_FILE_NAME |
+    EVERYTHING_REQUEST_PATH |
+    EVERYTHING_REQUEST_SIZE |
     EVERYTHING_REQUEST_DATE_MODIFIED)
 
 #execute the query
@@ -55,16 +55,14 @@ num_results=everything_dll.Everything_GetNumResults()
 print("Result Count: {}".format(num_results))
 
 #convert a windows FILETIME to a python datetime
-#https://stackoverflow.com/questions/39481221/convert-datetime-back-to-windows-64-bit-filetime
-WINDOWS_TICKS=int(1/10**-7) # 10,000,000 (100ns or .1us)
+# https://stackoverflow.com/questions/39481221/convert-datetime-back-to-windows-64-bit-filetime
+WINDOWS_TICKS=int(1/10**-7)  # 10,000,000 (100 nanoseconds or .1 microseconds)
 WINDOWS_EPOCH=datetime.datetime.strptime(
-    '1601-01-01 00:00:00',
-    '%Y-%m-%d %H:%M:%S')
+    '1601-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
 POSIX_EPOCH=datetime.datetime.strptime(
-    '1970-01-01 00:00:00',
-    '%Y-%m-%d %H:%M:%S')
-EPOCH_DIFF=(POSIX_EPOCH-WINDOWS_EPOCH).total_seconds() # 11644473600.0
-WINDOWS_TICKS_TO_POSIX_EPOCH=EPOCH_DIFF*WINDOWS_TICKS # 116444736000000000.0
+    '1970-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
+EPOCH_DIFF=(POSIX_EPOCH - WINDOWS_EPOCH).total_seconds()  # 11644473600.0
+WINDOWS_TICKS_TO_POSIX_EPOCH=EPOCH_DIFF * WINDOWS_TICKS  # 116444736000000000.0
 
 def get_time(filetime):
     """
