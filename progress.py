@@ -1,3 +1,6 @@
+"""
+Handy progress bar library
+"""
 import typing
 import time
 import threading
@@ -6,6 +9,9 @@ import threading
 ProgressCb=typing.Callable[[float,float,str],None]
 
 def cmdLineProgress(amt:float,total:float=1.0,msg:str=''):
+    """
+    Display a progress bar on the command line
+    """
     w=50
     full='#'
     empty='_'
@@ -29,12 +35,12 @@ class TimedCall:
 
     It can be used with Threading() or it can be run
     manually by calling like a function.
-    
+
     The difference being if you do not use threading, missed
     values might be cut off -- especially the last one, so
     you may want to call self.fn() directly for the last value.
 
-    But with threading you then have to worry about 
+    But with threading you then have to worry about
     thread safety instead, so pick your poison.
 
     TODO: make this an annotation?
@@ -42,9 +48,12 @@ class TimedCall:
     def __init__(self,fn:typing.Callable,timing:float=0.24):
         self.timing=timing
         self.fn=fn
-        self._argset:typing.Optional[typing.Tuple[typing.List,typing.Dict]]=None
+        self._argset:typing.Optional[
+            typing.Tuple[typing.List,typing.Dict]]=None
         self._inThread=False
         self._lasttimestamp=None
+        self._lastargs=[]
+        self._lastkwargs={}
 
     def __call__(self,*args,**kwargs):
         self._lastargs=args
@@ -54,12 +63,15 @@ class TimedCall:
         else:
             import datetime
             now=datetime.datetime.now()
-            if self._lasttimestamp is None or (now-self._lasttimestamp).microseconds/1000000.0>=self.timing:
+            if self._lasttimestamp is None \
+                or (now-self._lasttimestamp).microseconds/1000000.0>=self.timing: # noqa: E501 # pylint: disable=line-too-long
                 self._lasttimestamp=now
                 self.fn(*self._lastargs,**self._lastkwargs)
 
     def run(self):
-        # in case you want to run this like a thread
+        """
+        in case you want to run this like a thread
+        """
         self._inThread=True
         while True:
             if self._argset is not None:
@@ -83,7 +95,11 @@ class TimerProgress(threading.Thread):
         and thus make it 100%
     """
 
-    def __init__(self,progressBarCb:ProgressCb,timeout:float,interval:float=0.24):
+    def __init__(self,
+        progressBarCb:ProgressCb,
+        timeout:float,
+        interval:float=0.24):
+        """ """
         threading.Thread.__init__(self)
         self.progressBarCb=progressBarCb
         self.timeout=timeout
@@ -103,7 +119,7 @@ class TimerProgress(threading.Thread):
     def run(self):
         accumulator=0
         self.running=True
-        while(self.keepGoing):
+        while self.keepGoing:
             time.sleep(self.interval)
             accumulator+=self.interval
             if accumulator>=self.timeout:
@@ -115,14 +131,20 @@ class TimerProgress(threading.Thread):
 
 
 def sample():
-    import time
+    """
+    Sample demo
+    """
     progress=TimedCall(cmdLineProgress)
     for i in range(95):
         progress(i+1,95,f'Stage {i}')
         time.sleep(0.1)
     progress.fn(i+1,95,f'Stage {i}')
 
+
 def sample2():
+    """
+    Sample demo
+    """
     tp=TimerProgress(cmdLineProgress,10)
     tp.start()
     time.sleep(15)
