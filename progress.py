@@ -29,7 +29,7 @@ class TimedCall:
     Calls a function at most every n seconds
     (Useful for like ui stuff)
 
-    Useage:
+    Usage:
     _myFn=TimedCall(myFn)
     _myFn(normal,params)
 
@@ -48,25 +48,25 @@ class TimedCall:
     def __init__(self,fn:typing.Callable,timing:float=0.24):
         self.timing=timing
         self.fn=fn
-        self._argset:typing.Optional[
+        self._argSet:typing.Optional[
             typing.Tuple[typing.List,typing.Dict]]=None
         self._inThread=False
-        self._lasttimestamp=None
-        self._lastargs=[]
-        self._lastkwargs={}
+        self._lastTimestamp=None
+        self._lastArgs:typing.List[typing.Any]=[]
+        self._lastKwArgs:typing.Dict[str,typing.Any]={}
 
     def __call__(self,*args,**kwargs):
-        self._lastargs=args
-        self._lastkwargs=kwargs
+        self._lastArgs=args
+        self._lastKwArgs=kwargs
         if self._inThread:
-            self._argset=(args,kwargs)
+            self._argSet=(args,kwargs)
         else:
             import datetime
             now=datetime.datetime.now()
-            if self._lasttimestamp is None \
-                or (now-self._lasttimestamp).microseconds/1000000.0>=self.timing: # noqa: E501 # pylint: disable=line-too-long
-                self._lasttimestamp=now
-                self.fn(*self._lastargs,**self._lastkwargs)
+            if self._lastTimestamp is None \
+                or (now-self._lastTimestamp).microseconds/1000000.0>=self.timing: # noqa: E501 # pylint: disable=line-too-long
+                self._lastTimestamp=now
+                self.fn(*self._lastArgs,**self._lastKwArgs)
 
     def run(self):
         """
@@ -74,10 +74,10 @@ class TimedCall:
         """
         self._inThread=True
         while True:
-            if self._argset is not None:
-                argset=self._argset
-                self._argset=None
-                self.fn(*argset[0],**argset[1])
+            if self._argSet is not None:
+                argSet=self._argSet
+                self._argSet=None
+                self.fn(*argSet[0],**argSet[1])
 
 
 class TimerProgress(threading.Thread):

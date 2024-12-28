@@ -2,7 +2,6 @@
 List named pipes in windows
 """
 import typing
-import typing
 import time
 import subprocess
 import win32pipe # type: ignore

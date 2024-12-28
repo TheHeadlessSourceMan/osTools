@@ -66,11 +66,11 @@ WINDOWS_TICKS_TO_POSIX_EPOCH=EPOCH_DIFF * WINDOWS_TICKS  # 116444736000000000.0
 
 def get_time(filetime):
     """
-    Convert windows filetime winticks to python datetime.datetime.
+    Convert windows filetime in winticks to python datetime.datetime.
     """
     winticks=struct.unpack('<Q',filetime)[0]
-    microsecs=(winticks-WINDOWS_TICKS_TO_POSIX_EPOCH)/WINDOWS_TICKS
-    return datetime.datetime.fromtimestamp(microsecs)
+    microseconds=(winticks-WINDOWS_TICKS_TO_POSIX_EPOCH)/WINDOWS_TICKS
+    return datetime.datetime.fromtimestamp(microseconds)
 
 #create buffers
 filename=ctypes.create_unicode_buffer(260)

@@ -116,7 +116,7 @@ class _EnvironmentVariables:
     def set(self,k:str,v:typing.Any,
         append:typing.Optional[bool]=None,
         permanent:bool=False,
-        allusers:bool=False):
+        allUsers:bool=False):
         """
         set an item
 
@@ -125,7 +125,7 @@ class _EnvironmentVariables:
             (if unspecified, will try to guess based upon whether
             existing value is a list)
         :permanent: make changes to os env, not just for this session
-        :allusers: if makeing changes to os env, apply to all users
+        :allUsers: if making changes to os env, apply to all users
             (False=just current user)
         """
         if not isinstance(k,str):
@@ -142,30 +142,30 @@ class _EnvironmentVariables:
         # append to existing if necessary
         if append:
             current=self.get(k)
-            allvalues:typing.List[str]=[]
+            allValues:typing.List[str]=[]
             if current is None:
                 pass
             elif isinstance(current,str):
-                allvalues=[current]
+                allValues=[current]
             elif isinstance(current,Iterable):
-                allvalues=[str(vv) for vv in current]
+                allValues=[str(vv) for vv in current]
             else:
-                allvalues=[str(current)]
-            allvalues.append(v)
-            v=self.delimiter.join(allvalues)
+                allValues=[str(current)]
+            allValues.append(v)
+            v=self.delimiter.join(allValues)
         # make changes permanent if requested
         if permanent:
             if os.name=='nt':
                 cmd=['setx'] # run "setx /?" from command line for more info
-                if allusers:
+                if allUsers:
                     cmd.append('/M')
                 cmd.append('"%s"'%k)
                 cmd.append('"%s"'%v)
                 # TODO: must be elevated to work?
                 po=subprocess.Popen(cmd,
                     stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-                _,errb=po.communicate()
-                err=errb.decode('utf-8',errors='ignore').strip()
+                _,errB=po.communicate()
+                err=errB.decode('utf-8',errors='ignore').strip()
                 if err:
                     raise Exception(err)
             else:
