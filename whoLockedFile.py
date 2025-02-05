@@ -59,6 +59,7 @@ class RM_PROCESS_INFO(ctypes.Structure):
         ("AppStatus",ctypes.c_uint),
         ("TSSessionId",ctypes.c_uint),
         ("bRestartable",ctypes.c_bool)]
+    raise NotImplementedError()
     # TODO: I don't know what this is, but it looks incomplete
     # c_uint_p=ctypes.POINTER(ctypes.c_uint)
     # RM_PROCESS_INFO_p=ctypes.POINTER(RM_PROCESS_INFO)
@@ -133,17 +134,14 @@ class ProcessInfo:
         return self._fullName
 
     def _getProcessInfo(self):
-        """
-        Fetch the process info from the system
-        """
         ftCreate=FILETIME(0)
         ftExit=FILETIME(0)
         ftKernel=FILETIME(0)
         ftUser=FILETIME(0)
         if self.pid!=0:
-            hProcess=win32api.OpenProcess(
+            hProcess=win32api.OpenProcess( # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
                 win32con.PROCESS_QUERY_LIMITED_INFORMATION,
-                pywintypes.FALSE,
+                pywintypes.FALSE, # pylint: disable=no-member
                 self.pid)
             hProcess=win32api.OpenProcess(
                 win32con.PROCESS_QUERY_LIMITED_INFORMATION,
@@ -151,26 +149,26 @@ class ProcessInfo:
                 self.pid)
             if hProcess:
                 processStartTime=ctypes.c_uint(self.processStartTime)
-                if win32api.GetProcessTimes(
+                if win32api.GetProcessTimes( # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
                     hProcess,
                     ctypes.pointer(ftCreate),
                     ctypes.pointer(ftExit),
                     ctypes.pointer(ftKernel),
                     ctypes.pointer(ftUser)) \
                     and \
-                    win32api.CompareFileTime(
+                    win32api.CompareFileTime( # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
                     ctypes.pointer(processStartTime),
                     ctypes.pointer(ftCreate)) == 0:
                     #
                     imageName=ctypes.c_wchar*win32con.MAX_PATH
                     imageNameLen=ctypes.c_uint(win32con.MAX_PATH)
-                    if win32api.QueryFullProcessImageNameW(
+                    if win32api.QueryFullProcessImageNameW( # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
                         hProcess,0,imageName,
                         ctypes.pointer(imageNameLen)) \
                         and imageNameLen<=win32con.MAX_PATH:
                         #
                         self._fullName=imageName
-                win32api.CloseHandle(hProcess)
+                win32api.CloseHandle(hProcess) # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
         return (ftCreate,ftExit,ftKernel,ftUser)
 
     def __repr__(self)->str:
@@ -205,7 +203,7 @@ def processLockingFile(
         (main purpose is so this can be called recursively)
 
     Implementation is to query the "restart manager" to get this information
-    (You know, how every time you try to shut down winda's says
+    (You know, how every time you try to shut down windows it says
     "you can't because these apps are preventing it")
 
     See also:
@@ -213,7 +211,9 @@ def processLockingFile(
     """
     if not noExpand:
         filename=os.path.abspath(os.path.expandvars(filename))
-    if filename in ignore:
+    if ignore is None:
+        ignore=tuple()
+    elif filename in ignore:
         return
     if ignore is None:
         ignore=tuple()
@@ -227,7 +227,7 @@ def processLockingFile(
     #print(f'RmStartSession key={szSessionKey.value} session={dwSession.value}') # noqa: E501 # pylint: disable=line-too-long
     if dwError!=0: # success
         raise Exception('[Windows error 0x%02X] %s'%(
-            dwError,win32api.FormatMessage(dwError)))
+            dwError,win32api.FormatMessage(dwError))) # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
     pszFile=ctypes.c_wchar_p(filename)
     numFiles=1
     dwError=rstrtmgr.RmRegisterResources(
@@ -235,7 +235,7 @@ def processLockingFile(
     #print(f'RmRegisterResources({pszFile.value})')
     if dwError!=0: # success
         raise Exception('[Windows error 0x%02X] %s'%(
-            dwError,win32api.FormatMessage(dwError)))
+            dwError,win32api.FormatMessage(dwError))) # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
     dwReason=ctypes.c_uint()
     nProcInfoNeeded=ctypes.c_uint()
     numProcs=10
@@ -260,7 +260,7 @@ def processLockingFile(
     # https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
     if dwError!=0:
         raise Exception('[Windows error 0x%02X] %s'%(
-            dwError,win32api.FormatMessage(dwError)))
+            dwError,win32api.FormatMessage(dwError))) # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
     #print(f'RmGetList returned {nProcInfo.value} infos ({nProcInfoNeeded} needed)') # noqa: E501 # pylint: disable=line-too-long
     for i in range(nProcInfo.value):
         pi=ProcessInfo(
@@ -280,6 +280,7 @@ def processLockingFile(
                 ignore,
                 True)
 
+
 def cmdline(args:typing.Iterable[str])->int:
     """
     Run the command line
@@ -287,16 +288,16 @@ def cmdline(args:typing.Iterable[str])->int:
     :param args: command line arguments (WITHOUT the filename)
     """
     didSomething=False
-    printhelp=False
+    printHelp=False
     recursive=False
     for arg in args:
         if arg.startswith('-'):
             av=arg.split('=',1)
             av[0]=av[0].lower()
             if av[0] in ('-h','--help'):
-                printhelp=True
+                printHelp=True
             else:
-                printhelp=True
+                printHelp=True
             if av[0] in ('-r',):
                 recursive=True
         else:
@@ -306,8 +307,8 @@ def cmdline(args:typing.Iterable[str])->int:
             for p in procs:
                 print(p)
             didSomething=True
-    if printhelp or not didSomething:
-        print('USEAGE:')
+    if printHelp or not didSomething:
+        print('USAGE:')
         print('  whoLockedFile [options] [filename]')
         print('OPTIONS:')
         print('  -r ............................. recursive (keep going till you find one)') # noqa: E501 # pylint: disable=line-too-long

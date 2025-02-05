@@ -132,7 +132,7 @@ class _Editors:
         Editors supported:
             notepad++
             vscode
-            visualc++
+            visualC++
         or some reasonable string along those lines
         """
         if not isinstance(fileLocation,FileLocation):
@@ -173,28 +173,29 @@ def cmdline(args:typing.Iterable[str])->int:
     """
     Run this file as if from the command line
     """
-    printhelp=False
+    printHelp=False
     filename:typing.List[str]=[]
+    editor=None
     for arg in args:
         if not filename and arg.startswith('-'):
             av=arg.split('=',1)
             av[0]=av[0].lower()
             if av[0]=='--help':
-                printhelp=True
+                printHelp=True
             elif av[0]=='--editor':
                 editor=av[1]
             else:
                 print('ERR: Unknown Argument "%s"'%arg)
-                printhelp=True
+                printHelp=True
         else:
             filename.append(arg)
     if not filename:
-        printhelp=True
+        printHelp=True
     else:
         openEditor(' '.join(filename),editor=editor)
-    if printhelp:
+    if printHelp:
         print('Open an editor for the given vile')
-        print('Useage:')
+        print('Usage:')
         print('   openEditor.py [options] [filename]')
         print('Options:')
         print('   --help .......... show this help')

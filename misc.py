@@ -4,7 +4,7 @@ Misc stuff that didn't fit anywhere else
 import typing
 
 
-def skipEmptyines(lines:typing.Union[str,typing.Iterable[str]]
+def skipEmptyLines(lines:typing.Union[str,typing.Iterable[str]]
     )->typing.Generator[str,None,None]:
     """
     Iterate over a series of lines, skipping empty ones

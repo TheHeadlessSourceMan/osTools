@@ -19,8 +19,8 @@ def unlink(path:str)->None:
     po=subprocess.Popen(
         cmd,shell=True,
         stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    _,errb=po.communicate()
-    err=errb.decode('utf-8',errors='ignore').strip()
+    _,errB=po.communicate()
+    err=errB.decode('utf-8',errors='ignore').strip()
     if err:
         if err.startswith('The system cannot find the file specified'):
             # if it doesn't exist, then it's already "unlinked"!
@@ -32,7 +32,7 @@ def unlink(path:str)->None:
 
 def linkTarget(path:str)->str:
     """
-    get the end target of a symbolic link or shorcut
+    get the end target of a symbolic link or shortcut
 
     NOTE: can follow a series of links/shortcuts and has
         loop detection for safety
@@ -103,53 +103,53 @@ def cmdline(args:typing.Iterable[str])->int:
     """
     Run this from the command line
     """
-    printhelp=False
+    printHelp=False
     fromTo=[]
-    behaviour='link'
+    behavior='link'
     for arg in args:
         if arg.startswith('-'):
             av=arg.split('=',1)
             av[0]=av[0].lower()
             if av[0]=='--help':
-                printhelp=True
+                printHelp=True
             elif av[0]=='-s':
                 if len(av)>1:
                     fromTo.append(av[1])
-                behaviour='link'
+                behavior='link'
             elif av[0] in ('-u','--unlink'):
                 if len(av)>1:
                     fromTo.append(av[1])
-                behaviour='unlink'
+                behavior='unlink'
             elif av[0] in ('-t','--target'):
                 if len(av)>1:
                     fromTo.append(av[1])
-                behaviour='target'
+                behavior='target'
             else:
                 print('ERR: Unknown Argument "%s"'%arg)
-                printhelp=True
+                printHelp=True
         else:
             fromTo.append(arg)
-    if behaviour=='link':
+    if behavior=='link':
         if len(fromTo)!=2:
-            print('Unknown useage')
-            printhelp=True
+            print('Unknown usage')
+            printHelp=True
         else:
             ln(fromTo[0],fromTo[1])
-    elif behaviour=='unlink':
+    elif behavior=='unlink':
         if len(fromTo)!=1:
-            print('Unknown useage')
-            printhelp=True
+            print('Unknown usage')
+            printHelp=True
         else:
             unlink(fromTo[0])
-    elif behaviour=='target':
+    elif behavior=='target':
         if len(fromTo)!=1:
-            print('Unknown useage')
-            printhelp=True
+            print('Unknown usage')
+            printHelp=True
         else:
             print(linkTarget(fromTo[0]))
-    if printhelp:
+    if printHelp:
         print('Implementation of linux symbolic link command "ln" on windows')
-        print('Useage:')
+        print('Usage:')
         print('   ln.py [options] [fromFile] [toLinkName]')
         print('Options:')
         print('   --help ......... show this help')
