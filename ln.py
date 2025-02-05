@@ -7,6 +7,7 @@ Works great from the command line too!
 """
 import typing
 import os
+from pathlib import Path
 import sys
 import subprocess
 
@@ -82,13 +83,14 @@ def linkTarget(path:str)->str:
         ret=changed
     return ret
 
-def ln(fromPath:str,toPath:str)->None:
+def ln(fromPath:typing.Union[str,Path],toPath:typing.Union[str,Path])->None:
     """
     Create a symbolic link (even works on windows!)
     """
-    if os.sep!='/':
-        fromPath=fromPath.replace('/',os.sep)
-        toPath=toPath.replace('/',os.sep)
+    if not isinstance(fromPath,Path):
+        fromPath=Path(fromPath)
+    if not isinstance(toPath,Path):
+        toPath=Path(toPath)
     cmd=['mklink']
     if os.path.isdir(fromPath):
         cmd.append('/D')

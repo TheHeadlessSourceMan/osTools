@@ -1,0 +1,52 @@
+{
+    "windows":[
+        {
+            "title":"Paint",
+            "autoStart":"always",
+            "command":"mspaint",
+            "display":"1",
+            "desktop":"test desktop",
+            "x":"0",
+            "y":"0",
+            "w":"600",
+            "h":"600",
+            "windowStyle":"normal"
+        },
+        {
+            "title":"Paint",
+            "autoStart":"always",
+            "command":"mspaint",
+            "display":"1",
+            "desktop":"test desktop",
+            "x":"600",
+            "y":"0",
+            "w":"600",
+            "h":"600",
+            "windowStyle":"normal"
+        },
+        {
+            "title":"Paint",
+            "autoStart":"always",
+            "command":"mspaint",
+            "display":"1",
+            "desktop":"test desktop",
+            "x":"0",
+            "y":"600",
+            "w":"600",
+            "h":"600",
+            "windowStyle":"normal"
+        },
+        {
+            "title":"Paint",
+            "autoStart":"always",
+            "command":"mspaint",
+            "display":"1",
+            "desktop":"test desktop",
+            "x":"600",
+            "y":"600",
+            "w":"600",
+            "h":"600",
+            "windowStyle":"minimized"
+        }
+    ]
+}

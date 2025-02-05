@@ -211,12 +211,12 @@ def processLockingFile(
     """
     if not noExpand:
         filename=os.path.abspath(os.path.expandvars(filename))
-    if ignore is None:
-        ignore=tuple()
-    elif filename in ignore:
+    if filename in ignore:
         return
     if ignore is None:
         ignore=tuple()
+    if filename in ignore:
+        return
     print(f'Checking "{filename}"')
     if not isinstance(ignore,list):
         ignore=list(ignore)
