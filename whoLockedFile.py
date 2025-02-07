@@ -59,18 +59,20 @@ class RM_PROCESS_INFO(ctypes.Structure):
         ("AppStatus",ctypes.c_uint),
         ("TSSessionId",ctypes.c_uint),
         ("bRestartable",ctypes.c_bool)]
-    raise NotImplementedError()
-    # TODO: I don't know what this is, but it looks incomplete
-    # c_uint_p=ctypes.POINTER(ctypes.c_uint)
-    # RM_PROCESS_INFO_p=ctypes.POINTER(RM_PROCESS_INFO)
-    # rstrtmgr.RmStartSession.restype=ctypes.c_uint
-    # rstrtmgr.RmStartSession.argtypes=c_uint_p,ctypes.c_uint,ctypes.c_wchar_p
-    # rstrtmgr.RmRegisterResources.restype=ctypes.c_uint
-    # rstrtmgr.RmRegisterResources.argtypes=ctypes.c_uint,ctypes.c_uint,ctypes.POINTER(ctypes.c_wchar_p),ctypes.c_uint,ctypes.c_void_p,ctypes.c_uint,ctypes.c_void_p
-    # rstrtmgr.RmGetList.restype=ctypes.c_uint
-    # rstrtmgr.RmGetList.argtypes=ctypes.c_uint,c_uint_p,c_uint_p,RM_PROCESS_INFO_p,c_uint_p
-    # rstrtmgr.RmEndSession.restype=ctypes.c_uint
-    # rstrtmgr.RmEndSession.argtypes=[ctypes.c_uint]
+    def __init__(self):
+        ctypes.Structure.__init__(self)
+        raise NotImplementedError()
+        # TODO: I don't know what this is, but it looks incomplete
+        # c_uint_p=ctypes.POINTER(ctypes.c_uint)
+        # RM_PROCESS_INFO_p=ctypes.POINTER(RM_PROCESS_INFO)
+        # rstrtmgr.RmStartSession.restype=ctypes.c_uint
+        # rstrtmgr.RmStartSession.argtypes=c_uint_p,ctypes.c_uint,ctypes.c_wchar_p
+        # rstrtmgr.RmRegisterResources.restype=ctypes.c_uint
+        # rstrtmgr.RmRegisterResources.argtypes=ctypes.c_uint,ctypes.c_uint,ctypes.POINTER(ctypes.c_wchar_p),ctypes.c_uint,ctypes.c_void_p,ctypes.c_uint,ctypes.c_void_p
+        # rstrtmgr.RmGetList.restype=ctypes.c_uint
+        # rstrtmgr.RmGetList.argtypes=ctypes.c_uint,c_uint_p,c_uint_p,RM_PROCESS_INFO_p,c_uint_p
+        # rstrtmgr.RmEndSession.restype=ctypes.c_uint
+        # rstrtmgr.RmEndSession.argtypes=[ctypes.c_uint]
 
 @dataclass
 class ProcessInfo:
