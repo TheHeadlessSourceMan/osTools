@@ -11,12 +11,13 @@ from pathlib import Path
 import sys
 import subprocess
 
-def unlink(path:str)->None:
+
+def unlink(path:typing.Union[str,Path])->None:
     """
     Remove a symlink if it exists
     fail silently if it does not
     """
-    cmd='rmdir "%s"'%path
+    cmd=f'rmdir "{path}"'
     po=subprocess.Popen(
         cmd,shell=True,
         stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -31,7 +32,8 @@ def unlink(path:str)->None:
             return
         raise Exception(err)
 
-def linkTarget(path:str)->str:
+
+def linkTarget(path:typing.Union[str,Path])->Path:
     """
     get the end target of a symbolic link or shortcut
 
@@ -46,12 +48,12 @@ def linkTarget(path:str)->str:
             linkTarget(filename)=>filename
     """
     visited=set()
-    ret=path
+    ret:Path=Path(path)
     while True: # keep following links as long as they keep changing
         if ret in visited:
             raise Exception(f'Circular link "{ret}"')
         visited.add(ret)
-        cmd=['powershell','-command','(Get-Item',ret,').Target']
+        cmd=['powershell','-command','(Get-Item',str(ret),').Target']
         po=subprocess.Popen(cmd,shell=True,
             stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         #print('$>',' '.join(cmd))
@@ -59,31 +61,37 @@ def linkTarget(path:str)->str:
         err=err.strip()
         if err:
             raise Exception(err)
-        changed=out.strip().decode('utf-8',errors='ignore')
-        #print(changed)
-        if not changed or changed==ret: # no change
-            if ret.endswith('.lnk'):
-                # check .lnk shortcut
-                cmd2=['powershell','-command',
-                    '(New-Object',
-                    '-ComObject',
-                    f"WScript.Shell).CreateShortcut('{ret}').TargetPath"]
-                po=subprocess.Popen(
-                    cmd2,shell=True,
-                    stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-                #print('$>',' '.join(cmd2))
-                out,err=po.communicate()
-                err=err.strip()
-                if err:
-                    raise Exception(err)
-                changed=out.strip().decode('utf-8',errors='ignore')
+        changedStr=out.strip().decode('utf-8',errors='ignore')
+        if changedStr:
+            changed=Path(changedStr)
             #print(changed)
-            if not changed or changed==ret: # still no change
-                break
-        ret=changed
+            if changed==ret: # no change
+                if ret.suffix=='.lnk':
+                    # check .lnk shortcut
+                    cmd2=['powershell','-command',
+                        '(New-Object',
+                        '-ComObject',
+                        f"WScript.Shell).CreateShortcut('{ret}').TargetPath"]
+                    po=subprocess.Popen(
+                        cmd2,shell=True,
+                        stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                    #print('$>',' '.join(cmd2))
+                    out,err=po.communicate()
+                    err=err.strip()
+                    if err:
+                        raise Exception(err)
+                    changed=Path(out.strip().decode('utf-8',errors='ignore'))
+                #print(changed)
+                if not changed or changed==ret: # still no change
+                    break
+                ret=changed
     return ret
 
-def ln(fromPath:typing.Union[str,Path],toPath:typing.Union[str,Path])->None:
+
+def ln(
+    fromPath:typing.Union[str,Path],
+    toPath:typing.Union[str,Path]
+    )->None:
     """
     Create a symbolic link (even works on windows!)
     """
@@ -94,12 +102,13 @@ def ln(fromPath:typing.Union[str,Path],toPath:typing.Union[str,Path])->None:
     cmd=['mklink']
     if os.path.isdir(fromPath):
         cmd.append('/D')
-    cmd.append(toPath)
-    cmd.append(fromPath)
+    cmd.append(str(toPath))
+    cmd.append(str(fromPath))
     po=subprocess.Popen(cmd,shell=True,
         stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     out,_=po.communicate()
     print(out.decode('utf-8'))
+
 
 def cmdline(args:typing.Iterable[str])->int:
     """
