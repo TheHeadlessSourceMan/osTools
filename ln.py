@@ -30,7 +30,7 @@ def unlink(path:typing.Union[str,Path])->None:
         if err.startswith('The directory name is invalid'):
             # if it doesn't exist, then it's already "unlinked"!
             return
-        raise Exception(err)
+        raise Exception(f'"path"\n{err}')
 
 
 def linkTarget(path:typing.Union[str,Path])->Path:
@@ -60,7 +60,7 @@ def linkTarget(path:typing.Union[str,Path])->Path:
         out,err=po.communicate()
         err=err.strip()
         if err:
-            raise Exception(err)
+            raise Exception(f'"path"\n{err}')
         changedStr=out.strip().decode('utf-8',errors='ignore')
         if changedStr:
             changed=Path(changedStr)
@@ -79,7 +79,7 @@ def linkTarget(path:typing.Union[str,Path])->Path:
                     out,err=po.communicate()
                     err=err.strip()
                     if err:
-                        raise Exception(err)
+                        raise Exception(f'"path"\n{err}')
                     changed=Path(out.strip().decode('utf-8',errors='ignore'))
                 #print(changed)
                 if not changed or changed==ret: # still no change
