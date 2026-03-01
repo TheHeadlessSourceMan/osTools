@@ -249,7 +249,22 @@ class DeviceManager:
         """
         Install a new driver
         """
-        raise NotImplementedError()
+        infFile=driverName
+        if not infFile.endswith('.inf'):
+            infFile=infFile+'.inf'
+        if not os.path.exists(infFile):
+            # TODO: be smarter about finding
+        cmd=[
+            'pnputil',
+            '/add-driver',
+            infFile,
+            '/subdirs',
+            '/install'
+        po=subprocess.Popen(cmd,
+            stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        out,_=po.communicate()
+        outS=out.decode("utf-8",errors="ignore")
+        print(outS)
 
     def uninstallDriver(self,driverName:str):
         """
