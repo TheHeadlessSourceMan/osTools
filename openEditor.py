@@ -6,7 +6,7 @@ import typing
 import os
 import re
 import json
-from paths import FileLocation
+from paths import FileLocation,UrlCompatible,asUrl
 from k_runner.osrun import OsRun
 
 
@@ -124,7 +124,7 @@ class _Editors:
 
     def openEditor(
         self,
-        fileLocation:typing.Union[str,FileLocation],
+        fileLocation:typing.Union[str,FileLocation,UrlCompatible],
         row:int=0,
         col:int=0,
         editor:typing.Optional[str]=None):
@@ -135,8 +135,15 @@ class _Editors:
             visualC++
         or some reasonable string along those lines
         """
+        if not isinstance(fileLocation,(FileLocation,str)):
+            fileLocation=asUrl(fileLocation).filePath # type: ignore
+            if fileLocation is None:
+                raise FileNotFoundError('No filename given')
+            fileLocation=str(fileLocation)
         if not isinstance(fileLocation,FileLocation):
             fileLocation=FileLocation(fileLocation,row,col)
+        if fileLocation.filename is None:
+            raise FileNotFoundError('No filename given')
         template=Editors.getEditorCommand(fileLocation.filename,editor)
         cmd=template\
             .replace('{filename}',os.path.abspath(fileLocation.filename))\
@@ -147,7 +154,7 @@ class _Editors:
             .replace('{row}',str(fileLocation.row))\
             .replace('{col}',str(fileLocation.col))
         print(cmd)
-        OsRun(cmd,shell=True,detatch=True).runAsync()
+        OsRun(cmd,shell=True,detach=True).runAsync()
     open=openEditor
     edit=openEditor
 

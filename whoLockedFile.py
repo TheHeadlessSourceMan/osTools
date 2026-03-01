@@ -59,18 +59,20 @@ class RM_PROCESS_INFO(ctypes.Structure):
         ("AppStatus",ctypes.c_uint),
         ("TSSessionId",ctypes.c_uint),
         ("bRestartable",ctypes.c_bool)]
-    raise NotImplementedError()
-    # TODO: I don't know what this is, but it looks incomplete
-    # c_uint_p=ctypes.POINTER(ctypes.c_uint)
-    # RM_PROCESS_INFO_p=ctypes.POINTER(RM_PROCESS_INFO)
-    # rstrtmgr.RmStartSession.restype=ctypes.c_uint
-    # rstrtmgr.RmStartSession.argtypes=c_uint_p,ctypes.c_uint,ctypes.c_wchar_p
-    # rstrtmgr.RmRegisterResources.restype=ctypes.c_uint
-    # rstrtmgr.RmRegisterResources.argtypes=ctypes.c_uint,ctypes.c_uint,ctypes.POINTER(ctypes.c_wchar_p),ctypes.c_uint,ctypes.c_void_p,ctypes.c_uint,ctypes.c_void_p
-    # rstrtmgr.RmGetList.restype=ctypes.c_uint
-    # rstrtmgr.RmGetList.argtypes=ctypes.c_uint,c_uint_p,c_uint_p,RM_PROCESS_INFO_p,c_uint_p
-    # rstrtmgr.RmEndSession.restype=ctypes.c_uint
-    # rstrtmgr.RmEndSession.argtypes=[ctypes.c_uint]
+    def __init__(self):
+        ctypes.Structure.__init__(self)
+        raise NotImplementedError()
+        # TODO: I don't know what this is, but it looks incomplete
+        # c_uint_p=ctypes.POINTER(ctypes.c_uint)
+        # RM_PROCESS_INFO_p=ctypes.POINTER(RM_PROCESS_INFO)
+        # rstrtmgr.RmStartSession.restype=ctypes.c_uint
+        # rstrtmgr.RmStartSession.argtypes=c_uint_p,ctypes.c_uint,ctypes.c_wchar_p
+        # rstrtmgr.RmRegisterResources.restype=ctypes.c_uint
+        # rstrtmgr.RmRegisterResources.argtypes=ctypes.c_uint,ctypes.c_uint,ctypes.POINTER(ctypes.c_wchar_p),ctypes.c_uint,ctypes.c_void_p,ctypes.c_uint,ctypes.c_void_p
+        # rstrtmgr.RmGetList.restype=ctypes.c_uint
+        # rstrtmgr.RmGetList.argtypes=ctypes.c_uint,c_uint_p,c_uint_p,RM_PROCESS_INFO_p,c_uint_p
+        # rstrtmgr.RmEndSession.restype=ctypes.c_uint
+        # rstrtmgr.RmEndSession.argtypes=[ctypes.c_uint]
 
 @dataclass
 class ProcessInfo:
@@ -134,9 +136,6 @@ class ProcessInfo:
         return self._fullName
 
     def _getProcessInfo(self):
-        """
-        Fetch the process info from the system
-        """
         ftCreate=FILETIME(0)
         ftExit=FILETIME(0)
         ftKernel=FILETIME(0)
@@ -146,7 +145,7 @@ class ProcessInfo:
                 win32con.PROCESS_QUERY_LIMITED_INFORMATION,
                 pywintypes.FALSE, # pylint: disable=no-member
                 self.pid)
-            hProcess=win32api.OpenProcess( # noqa:E501 # pylint: disable=c-extension-no-member,line-too-long
+            hProcess=win32api.OpenProcess(
                 win32con.PROCESS_QUERY_LIMITED_INFORMATION,
                 False,
                 self.pid)
@@ -214,9 +213,11 @@ def processLockingFile(
     """
     if not noExpand:
         filename=os.path.abspath(os.path.expandvars(filename))
+    if filename in ignore:
+        return
     if ignore is None:
         ignore=tuple()
-    elif filename in ignore:
+    if filename in ignore:
         return
     print(f'Checking "{filename}"')
     if not isinstance(ignore,list):

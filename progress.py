@@ -1,6 +1,9 @@
 """
 Handy progress bar library
 """
+"""
+Handy progress bar library
+"""
 import typing
 import time
 import threading
@@ -9,6 +12,9 @@ import threading
 ProgressCb=typing.Callable[[float,float,str],None]
 
 def cmdLineProgress(amt:float,total:float=1.0,msg:str=''):
+    """
+    Display a progress bar on the command line
+    """
     """
     Display a progress bar on the command line
     """
