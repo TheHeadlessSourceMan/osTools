@@ -9,3 +9,4 @@ from .hr import *
 from .ln import *
 from .ps import *
 from .whoLockedFile import *
+from .processIdle import *
