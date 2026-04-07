@@ -43,7 +43,7 @@ class SHELLEXECUTEINFO(ctypes.Structure):
     ]
 
 
-class ContextMenuItem:
+class ContextMenuItem(ContextMenuItemBase):
     """
     a single menu item in the context menu
     """
