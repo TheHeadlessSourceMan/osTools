@@ -13,6 +13,7 @@ import typing
 import subprocess
 import PIL.Image
 from paths import UrlCompatible,Url,asUrl,MimeType
+from fileExplorerContextMenu.fileExplorerContextMenuBase import FileExplorerContextMenusBase
 
 
 class ProfileValuesDict:
@@ -155,7 +156,8 @@ class ActionProfile(ProfileValuesDict):
         if p.find(' ')>=0:
             p=f'"{p}"'
         cmd=self.exec.replace(r'%d',p)
-        return subprocess.Popen(cmd,shell=True,cwd=self.path,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        return subprocess.Popen(cmd,shell=True,cwd=self.path,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
     def appliesToFile(self,filename:UrlCompatible)->bool:
         """
@@ -248,7 +250,7 @@ class DesktopEntry:
         Get the icon
         """
         filename=self.iconName
-        return PIL.Image.Image(filename)
+        return PIL.Image.open(filename)
 
     def callOnFile(self,filename:UrlCompatible,verify:bool=True):
         """
@@ -269,10 +271,10 @@ class DesktopEntry:
         return False
 
 
-class Actions:
+class LinuxNautilusContextMenus(FileExplorerContextMenusBase):
     """
-    Access context menus for linux Nautilus/Nemo file explorers.
-    (Nautilus=Gnome desktop, Nemo=Mint,Cinnamon desktop)
+    Access context menus for linux Nautilus file explorers.
+    (Nautilus is the default fie explorer for Gnome desktop)
 
     This is based on the DES-EMA (Desktop Entry Specification - Extension for Menus and Actions)
     Specification:
@@ -328,13 +330,31 @@ class Actions:
                 yield action
 
 
+def openNautilus(
+    location:typing.Optional[UrlCompatible]=None,
+    selection:typing.Optional[UrlCompatible]=None
+    )->subprocess.Popen:
+    """
+    Open the nemo file explorer
+    """
+    cmd=['nautilus','-w']
+    if location is not None and location:
+        cmd.append(str(asUrl(location)))
+        if selection is not None:
+            selection=asUrl(selection)
+            cmd.append('-s')
+            cmd.append(str(selection))
+    return subprocess.Popen(cmd,shell=True,
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
+
 def replaceParameters(formatString:str,files:typing.Iterable[UrlCompatible])->str:
     r"""
     Replace desktop % code parameters with what they should be
     """
     import re
     files=[asUrl(f) for f in files]
-    percentCodes={r'%%',r'%'}
+    percentCodes:typing.Dict[str,typing.Union[str,int,None]]={r'%%':r'%'}
     def enquot(s:typing.Union[str,Url])->str:
         s=str(s)
         if s.find(' ')>=0:
@@ -375,13 +395,11 @@ def replaceParameters(formatString:str,files:typing.Iterable[UrlCompatible])->st
             elif pc==r'%U':
                 ret=' '.join([enquot(f.urlString) for f in files])
             elif pc==r'%w':
-                ret=enquot(files[0].)
+                ret=enquot(files[0].absolute())
             elif pc==r'%W':
                 ret=' '.join([enquot(f.absolute()) for f in files])
-            
-            
             percentCodes[pc]=ret
-        return ret
+        return str(ret)
     percentSplitter=re.compile(r'%[bBcdDfFmFnoOpsuUwWxX%]')
     parts=[]
     lastIdx=0

@@ -3,13 +3,16 @@ The ability to query windows context menu
 and run items from the command line
 """
 import typing
+import subprocess
 import ctypes
-from pathlib import Path
 from ctypes import wintypes
 from win32com.shell import shell
 import win32gui
 import win32con
 import win32gui_struct
+from paths import UrlCompatible,asUrl,Url
+from fileExplorerContextMenu.fileExplorerContextMenuBase import (
+    FileExplorerContextMenusBase,ContextMenuItemBase)
 
 
 # Constants for invoking commands
@@ -125,33 +128,32 @@ class ContextMenuForFilename:
     """
     represents the context menu for a given filename
     """
-    def __init__(self,filename:typing.Union[str,Path]):
+    def __init__(self,filename:UrlCompatible):
         """
         Retrieves Windows Explorer context menu entries for a given file.
         Returns a list of (menu_text,command) tuples.
         """
-        self._filename:Path
+        self._filename:Url
         self.entries:typing.List[ContextMenuItem]=[]
         self.assign(filename)
 
     @property
-    def filename(self)->Path:
+    def filename(self)->Url:
         """
         get the target filename
         """
         return self._filename
     @filename.setter
-    def filename(self,filename:typing.Union[str,Path]):
+    def filename(self,filename:UrlCompatible):
         self.assign(filename)
 
-    def assign(self,filename:typing.Union[str,Path]):
+    def assign(self,filename:UrlCompatible):
         """
         Retrieves Windows Explorer context menu entries for a given file.
         Returns a list of (menu_text,command) tuples.
         """
         self.entries=[]
-        if not isinstance(filename,Path):
-            filename=Path(filename)
+        filename=Url(filename)
         filename=filename.absolute()
         self._filename=filename
         parent_folder=filename.parent
@@ -175,6 +177,23 @@ class ContextMenuForFilename:
         for e in self.entries:
             ret.append(repr(e))
         return '\n\t'.join(ret)
+
+
+class WindowsExplorerContextMenus(FileExplorerContextMenusBase):
+    """
+    Context menus for windows explorer
+    """
+
+
+def openWindowsExplorer(location:typing.Optional[UrlCompatible]=None):
+    """
+    Open the windows file explorer
+    """
+    cmd=['cosmic-files']
+    if location is not None and location:
+        cmd.append(str(asUrl(location)))
+    return subprocess.Popen(cmd,shell=True,
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
 
 def cmdline(args:typing.Iterable[str])->int:

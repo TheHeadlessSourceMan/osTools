@@ -109,6 +109,11 @@ class FileExplorerContextMenusBase:
     def __init__(self):
         pass
 
-    def getMenus(self,files:UrlListCompatible)->FileExplorerContextMenuBase:
+    def getMenuItems(self,
+        files:UrlListCompatible
+        )->FileExplorerContextMenuBase:
+        """
+        Get all menu items that apply to one or more files
+        """
         ret=FileExplorerContextMenuBase(self,files)
         return ret

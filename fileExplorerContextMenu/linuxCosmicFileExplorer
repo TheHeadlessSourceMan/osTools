@@ -1,0 +1,21 @@
+"""
+Access the cosmic files explorer.
+
+Cosmic is the default file explorer of Pop!_OS
+"""
+import typing
+import subprocess
+from paths import UrlCompatible,asFilePath
+
+
+def openCosmic(
+    location:typing.Optional[UrlCompatible]=None
+    )->subprocess.Popen:
+    """
+    Open the cosmic file explorer
+    """
+    cmd=['cosmic-files']
+    if location is not None and location:
+        cmd.append(str(asFilePath(location)))
+    return subprocess.Popen(cmd,shell=True,
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE)

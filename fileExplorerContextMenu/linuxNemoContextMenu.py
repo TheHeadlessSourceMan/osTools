@@ -290,6 +290,7 @@ class NemoAction:
 class NemoActions:
     """
     All known nemo actions
+    (Nemo is the default file explorer for mint,cinnamon)
     """
     NemoActionsDirectory=FileUrl('~/.local/share/nemo/actions',shellReplace=True)
 
@@ -322,3 +323,15 @@ class NemoActions:
         for action in self.actions:
             if action.appliesToFile(filename):
                 yield action
+
+def openNemo(
+    location:typing.Optional[UrlCompatible]=None
+    )->subprocess.Popen:
+    """
+    Open the nemo file explorer
+    """
+    cmd=['nemo']
+    if location is not None and location:
+        cmd.append(str(asUrl(location)))
+    return subprocess.Popen(cmd,shell=True,
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE)
