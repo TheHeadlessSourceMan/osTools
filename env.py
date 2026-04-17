@@ -1,184 +1,373 @@
 """
-expands upon sys.environ to make it an object
+More user-friendly way of dealing with environment variables
+
+This can be assigned from external sources, translated to/from json,
+and return values in a desired variable type.
 """
-import subprocess
 import typing
-from collections.abc import Iterable
 import os
+from pathlib import Path
 
-class _EnvironmentVariables:
-    """
-    expands upon sys.env to make it an object
-    """
 
-    def __init__(self):
-        if os.name=='nt':
-            self.delimiter=';'
+EnvVariableValue=typing.Any
+EnvVariablesCompatible=typing.Union[None,str,typing.List[str],typing.Dict[str,EnvVariableValue]]
+
+
+def setSystemEnv(name:str,value:typing.Any,listSplitter:str='')->None:
+    """
+    set a system-wide environment variable
+
+    TODO: this could be dangerous and needs a better shell-escape solution!
+    """
+    import subprocess
+    if not isinstance(value,str):
+        if isinstance(value,(list,tuple)):
+            value=listSplitter.join([str(v) for v in value])
         else:
-            self.delimiter=':'
+            value=str(value)
+    value=value.replace('\\','\\\\').replace('"','\\"')
+    if value.find(' ')>=0 or value.find('\n')>=0:
+        value=f'"{value}"'
+    if os=='nt':
+        cmd=['setx',name,value]
+    else:
+        cmd=['export',f'{name}={value}']
+    po=subprocess.Popen(cmd,shell=True,stderr=subprocess.PIPE)
+    _,err=po.communicate()
+    err=err.strip()
+    if err:
+        raise Exception(err.decode('utf-8',errors='ignore'))
 
-    def __call__(self)->"_EnvironmentVariables":
-        """
-        In case some fool tries to construct EnvironmentVariables variable
-        """
-        return self
 
-    def __getitem__(self,k:str,default:typing.Any=None
-        )->typing.Any:
-        """
-        Access like a dict
-        """
-        return self.get(k,default)
+ENV_VARIABLES_SCOPE=typing.Literal[
+    'isolated', # value is isolated to just a single object
+    'application', # value is applied to the entire application via os.environ
+    'system'] # value is exported to the operating system
 
-    def __setitem__(self,k:str,v:typing.Any)->None:
-        """
-        Access like a dict
-        """
-        return self.set(k,v)
 
-    def items(self)->typing.Iterable[typing.Tuple[str,typing.Any]]:
-        """
-        Access like a dict
-        """
-        return [(k,self.get(k)) for k in self.keys()]
+class EnvVariables:
+    """
+    More user-friendly way of dealing with environment variables
 
-    def keys(self)->typing.Iterable[str]:
-        """
-        Access like a dict
-        """
-        return os.environ.keys()
+    This can be assigned from external sources, translated to/from json,
+    and return values in a desired variable type.
+    """
 
-    def values(self)->typing.Iterable[typing.Any]:
-        """
-        Access like a dict
-        """
-        return [self.get(k) for k in self.keys()]
-
-    def getStr(self,k:str,default:typing.Any=None)->str:
-        """
-        Get the specified item as a string
-        """
-        if not isinstance(k,str):
-            k=str(k)
-        if k not in os.environ:
-            return default # type: ignore
-        return os.environ[k]
-
-    def getStrList(self,k:str,default:typing.Any=None)->typing.List[str]:
-        """
-        Get the specified item as a list of strings
-        """
-        s=self.getStr(k,default)
-        if isinstance(s,str):
-            return s.split(self.delimiter)
-        return s
-
-    def _inferredCast(self,v:str)->typing.Any:
-        """
-        Utility to perform the best cast that a string allows
-        """
-        ret:typing.Any=v
-        if v is None:
-            return v
-        try:
-            ret=int(v)
-            return ret
-        except ValueError:
-            pass
-        try:
-            ret=float(v)
-            return ret
-        except ValueError:
-            pass
-        lv=v.lower()
-        if lv in ('y','yes','t','true'):
-            return True
-        if lv in ('n','no','f','false'):
-            return False
-        return v
-
-    def getList(self,k:str,default:typing.Any=None)->typing.List[typing.Any]:
-        """
-        Get the specified item as a list of mixed-type items
-        """
-        return [self._inferredCast(v) for v in self.getStrList(k,default)]
-
-    def get(self,k:str,default:typing.Any=None)->typing.Any:
-        """
-        Get the specified item as a mixed-type item
-        or a list of mixed-type items
-        """
-        v=self.getList(k,default)
-        if v is not None and len(v)==1:
-            return v[0]
-        return None
-
-    def set(self,k:str,v:typing.Any,
-        append:typing.Optional[bool]=None,
-        permanent:bool=False,
-        allUsers:bool=False):
-        """
-        set an item
-
-        :append: if value already exists, then append to it with the
-            os separator, otherwise will overwrite the old value
-            (if unspecified, will try to guess based upon whether
-            existing value is a list)
-        :permanent: make changes to os env, not just for this session
-        :allUsers: if making changes to os env, apply to all users
-            (False=just current user)
-        """
-        if not isinstance(k,str):
-            k=str(k)
-        if not isinstance(v,str):
-            if isinstance(v,Iterable):
-                v=self.delimiter.join([str(vv) for vv in v])
-            else:
-                v=str(v)
-        # from here on out v is always a string
-        # if append is not specified, guess based upon whether it is a list
-        if append is None:
-            append=self.getStr(k,'').find(self.delimiter)>=0
-        # append to existing if necessary
-        if append:
-            current=self.get(k)
-            allValues:typing.List[str]=[]
-            if current is None:
-                pass
-            elif isinstance(current,str):
-                allValues=[current]
-            elif isinstance(current,Iterable):
-                allValues=[str(vv) for vv in current]
-            else:
-                allValues=[str(current)]
-            allValues.append(v)
-            v=self.delimiter.join(allValues)
-        # make changes permanent if requested
-        if permanent:
+    def __init__(self,
+        environ:EnvVariablesCompatible=None,
+        listSplitter:str='',
+        scope:ENV_VARIABLES_SCOPE='isolated'):
+        """ """
+        self.scope:ENV_VARIABLES_SCOPE=scope
+        self._origin:ENV_VARIABLES_SCOPE='application'
+        if not listSplitter:
             if os.name=='nt':
-                cmd=['setx'] # run "setx /?" from command line for more info
-                if allUsers:
-                    cmd.append('/M')
-                cmd.append('"%s"'%k)
-                cmd.append('"%s"'%v)
-                # TODO: must be elevated to work?
-                po=subprocess.Popen(cmd,
-                    stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-                _,errB=po.communicate()
-                err=errB.decode('utf-8',errors='ignore').strip()
-                if err:
-                    raise Exception(err)
+                listSplitter=';'
             else:
-                raise NotImplementedError()
-        # set the global environment value for the running app
-        os.environ[k]=v
+                listSplitter=':'
+        self._environ:typing.Dict[str,typing.Union[str,typing.List[str]]]={}
+        self.listSplitter=listSplitter
+        self.extend(environ)
 
-    # no need to be this specific, but for parity with get() functions...
-    setList=set
-    setStr=set
-    setStrList=set
+    @property
+    def jsonString(self)->str:
+        """
+        get as a json-compatible string
+        """
+        import json
+        return json.dumps(self.jsonObj)
+    @jsonString.setter
+    def jsonString(self,jsonString:str):
+        import json
+        self.jsonObj=json.loads(jsonString)
 
-# global and its aliases
-EnvironmentVariables=_EnvironmentVariables()
-environmentVariables=EnvironmentVariables
-env=EnvironmentVariables
+    @property
+    def jsonObj(self)->typing.Dict[str,typing.Any]:
+        """
+        get as a json compatible object
+        """
+        ret={}
+        for k,v in self._environ.items():
+            if not isinstance(v,str):
+                if v is None:
+                    v=''
+                elif isinstance(v,list):
+                    v=[str(vv) for vv in v]
+                else:
+                    v=str(v)
+            ret[k]=v
+        return ret
+    @jsonObj.setter
+    def jsonObj(self,jsonObj:typing.Dict[str,typing.Any]):
+        self.assign(jsonObj)
+
+    def clear(self,
+        scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Clear out the current value assignments
+        """
+        if scope is None:
+            scope=self.scope
+        if scope=='system':
+            raise NotImplementedError('We never, ever, ever clear the system environment!')
+        self._environ={}
+        if scope=='application':
+            os.environ.clear()
+
+    def assign(self,
+            environ:EnvVariablesCompatible,
+            scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Assign this to a specific set of environment variables
+        """
+        if scope is None:
+            scope=self.scope
+        if scope!='system':
+            # never, ever clear the system environment!
+            self.clear(scope)
+        self.extend(environ,scope)
+
+    def append(self,k:str,v:typing.Union[str,typing.List[str]],
+            scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Append to an existing environment variable
+
+        1) will create if it does not exist
+        2) if there is only one value it will be a string
+        3) if there are more than one value, it will be a list
+        """
+        if scope is None:
+            scope=self.scope
+        if isinstance(v,str):
+            if not v:
+                return
+            v=[v]
+        elif not v:
+            return
+        current=self._environ.get(k,None)
+        if current is None:
+            if len(v)==1:
+                current=v[0]
+            else:
+                current=[str(vv) for vv in v]
+            self._environ[k]=current
+        elif not isinstance(current,str):
+            current.extend(v)
+        else:
+            current=[current]
+            current.extend(v)
+            self._environ[k]=current
+        # save to application and possibly system scope
+        if scope!='isolated':
+            if isinstance(current,list):
+                current=self.listSplitter.join(current)
+            os.environ[k]=current
+            if scope=='system':
+                setSystemEnv(k,current,self.listSplitter)
+
+    def extend(self,
+            environ:EnvVariablesCompatible,
+            scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Extend these values with another set of values
+        """
+        if not environ:
+            return
+        env:typing.Dict[str,typing.Union[str,list[str]]]={}
+        if isinstance(environ,str):
+            environ=environ.split('\n')
+        if isinstance(environ,list):
+            for item in environ:
+                kv=str(item).split('=',1)
+                if len(kv)>1:
+                    v=kv[-1].split(self.listSplitter)
+                    if len(v)==1:
+                        v=v[0]
+                    else:
+                        raise NotImplementedError('may be multiline??')
+                    env[kv[0]]=v
+        else:
+            for k,v in environ.items():
+                if isinstance(v,(list,tuple)):
+                    v=[str(vv) for vv in v]
+                else:
+                    v=str(v)
+                env[k]=v
+        if scope is None:
+            scope=self.scope
+        for k,v in env.items():
+            self.append(k,v)
+    union=extend
+    add=extend
+
+    def keys(self):
+        """
+        act like a dict
+        """
+        return self._environ.keys()
+    def values(self):
+        """
+        act like a dict
+        """
+        for v in self._environ.values():
+            if isinstance(v,list):
+                v=self.listSplitter.join(v)
+            yield v
+    def items(self):
+        """
+        act like a dict
+        """
+        for k,v in self._environ.items():
+            if isinstance(v,list):
+                v=self.listSplitter.join(v)
+            yield k,v
+    def __iter__(self):
+        return self.items()
+
+    def __len__(self):
+        return len(self._environ)
+
+    @typing.overload
+    def getString(self,name:str,default:str='')->str:
+        ...
+    @typing.overload
+    def getString(self,name:str,default:typing.Any)->typing.Any:
+        ...
+    def getString(self,name:str,default:typing.Any='')->typing.Any:
+        """
+        always returns a string
+        """
+        val=self._environ.get(name,default)
+        return val
+    get=getString
+    getStr=getString
+    def __getitem__(self,idx:str):
+        ret=self.getString(idx,None)
+        if ret is None:
+            raise IndexError(f'Item "{idx}" not in list')
+
+    def set(self,
+        name:str,
+        value:typing.Any,
+        scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Eiter set one value or a list of values.
+        """
+        if isinstance(value,(list,tuple)):
+            self.setStringList(name,value,scope)
+        else:
+            self.setString(name,value,scope)
+    __setitem__=set
+
+    def setString(self,
+        name:str,
+        value:typing.Any,
+        scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Set a string value
+        """
+        if isinstance(value,(list,tuple)):
+            value=self.listSplitter.join([str(v) for v in value])
+        else:
+            value=str(value)
+        self._environ[name]=value
+        # save to application and possibly system scope
+        if scope!='isolated':
+            os.environ[name]=value
+            if scope=='system':
+                setSystemEnv(name,value,self.listSplitter)
+
+    @typing.overload
+    def getFloat(self,name:str,default:float=0.0)->float:
+        ...
+    @typing.overload
+    def getFloat(self,name:str,default:typing.Any)->typing.Any:
+        ...
+    def getFloat(self,name:str,default:typing.Any=0.0)->typing.Any:
+        """
+        always returns a float
+        """
+        val=self.getString(name,default)
+        try:
+            val=float(val)
+        except Exception:
+            return default
+        return val
+    def setFloat(self,
+        name:str,
+        value:typing.Any,
+        scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Set a float value
+        """
+        self.setString(name,float(value),scope)
+
+    @typing.overload
+    def getInt(self,name:str,default:int=0)->int:
+        ...
+    @typing.overload
+    def getInt(self,name:str,default:typing.Any)->typing.Any:
+        ...
+    def getInt(self,name:str,default:typing.Any=0)->typing.Any:
+        """
+        always returns an int
+        """
+        val=self.getString(name,default)
+        try:
+            val=int(val)
+        except Exception:
+            return default
+        return val
+    def setInt(self,
+        name:str,
+        value:typing.Any,
+        scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        Set an int value
+        """
+        self.setString(name,int(value),scope)
+
+    def getStringList(self,name:str)->typing.Iterable[str]:
+        """
+        get env variable as a list of strings
+        """
+        ret=self._environ.get(name,[])
+        if isinstance(ret,str):
+            return [ret]
+        return ret
+    getStrList=getStringList
+    getList=getStringList
+    def setStringList(self,
+            name:str,
+            values:typing.Iterable[typing.Any],
+            scope:typing.Optional[ENV_VARIABLES_SCOPE]=None):
+        """
+        get env variable as a list of strings
+        """
+        if isinstance(values,str):
+            values=[values]
+        else:
+            values=[str(v) for v in values]
+        self._environ[name]=values
+        # save to application and possibly system scope
+        if scope!='isolated':
+            values=self.listSplitter.join(values)
+            os.environ[name]=values
+            if scope=='system':
+                setSystemEnv(name,values,self.listSplitter)
+
+    def getFilenameList(self,name:str)->typing.Iterable[Path]:
+        """
+        get env variable as a list of files
+        """
+        for fn in self.getStringList(name):
+            yield Path(fn)
+    setFilenameList=setStringList
+
+
+# a drop-in replacement for os.environ
+environ=EnvVariables(scope='application')
+# global aliases
+EnvironmentVariables=environ
+environmentVariables=environ
+env=environ
