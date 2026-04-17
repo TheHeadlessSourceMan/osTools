@@ -44,6 +44,8 @@ ENV_VARIABLES_SCOPE=typing.Literal[
     'application', # value is applied to the entire application via os.environ
     'system'] # value is exported to the operating system
 
+SUBSTITUTION_FORMAT=typing.Literal[
+    'windows','linux','fstring','all']
 
 class EnvVariables:
     """
@@ -68,6 +70,161 @@ class EnvVariables:
         self._environ:typing.Dict[str,typing.Union[str,typing.List[str]]]={}
         self.listSplitter=listSplitter
         self.extend(environ)
+
+    @typing.overload
+    def expandvars(self,
+        target:str,
+        subsitutionFormat:SUBSTITUTION_FORMAT='all',
+        override:typing.Optional[typing.Dict[str,typing.Any]]=None,
+        ignorecase:typing.Optional[bool]=None
+        )->str:
+        ...
+    @typing.overload
+    def expandvars(self,
+        target:typing.Iterable[str],
+        subsitutionFormat:SUBSTITUTION_FORMAT='all',
+        override:typing.Optional[typing.Dict[str,typing.Any]]=None,
+        ignorecase:typing.Optional[bool]=None
+        )->typing.Iterable[str]:
+        ...
+    def expandvars(self,
+        target:typing.Union[str,typing.Iterable[str]],
+        subsitutionFormat:SUBSTITUTION_FORMAT='all',
+        override:typing.Optional[typing.Dict[str,typing.Any]]=None,
+        ignorecase:typing.Optional[bool]=None
+        )->typing.Union[str,typing.Iterable[str]]:
+        r"""
+        Substitute these environment variables into one or more strings
+
+        :target: a target string, or list of strings, to substitute in
+        :substitutionFormat: can accept any one of
+            'fstring': like "you are {age} years old"
+            'windows': like "you are %AGE% years old"
+            'linux': like "you are ${AGE} or $AGE years old"
+            'all': all of the above (default)
+        :overrode: a dict of values to override existing shell parameters
+            in the replacement
+        :ignorecase: self-explanitory, but notice that passing None
+            takes the system policy, that is windows is ignorecase=True,
+            everybody else is ignorecase=False
+        """
+        if ignorecase is None:
+            ignorecase=os.name=='nt'
+        # set up a substitution dict
+        subb={}
+        if ignorecase:
+            for k,v in self.items():
+                subb[k.lower()]=v
+            if override is not None:
+                for k,v in override:
+                    if isinstance(v,(list,tuple)):
+                        v=self.listSplitter.join([str(vv) for vv in v])
+                    else:
+                        v=str(v)
+                    subb[k.lower()]=v
+        else:
+            subb=dict(self.items())
+            if override is not None:
+                for k,v in override:
+                    if isinstance(v,(list,tuple)):
+                        v=self.listSplitter.join([str(vv) for vv in v])
+                    else:
+                        v=str(v)
+                    subb[k]=v
+        # perform all substitutions
+        def sub1(s):
+            if subsitutionFormat=='fstring':
+                return self._subFstring(s,subb,ignorecase)
+            elif subsitutionFormat=='linux':
+                return self._subLinux(s,subb,ignorecase)
+            elif subsitutionFormat=='windows':
+                return self._subWindows(s,subb,ignorecase)
+            return self._subWindows(
+                self._subFstring(
+                    self._subLinux(s,subb,ignorecase),
+                    subb,ignorecase),
+                subb,ignorecase)
+        if isinstance(target,str):
+            return sub1(target)
+        else:
+            for s in target:
+                yield sub1(s)
+    substitute=expandvars
+    sub=expandvars
+    subn=expandvars
+
+    def _subFstring(self,
+        s:str,
+        casedDict:typing.Dict[str,str],
+        ignorecase:bool
+        )->str:
+        """
+        substitute fstring-like values in the string
+        """
+        ret=[]
+        for part in s.split('{'):
+            if not ret:
+                ret.append(part)
+            else:
+                km=part.split('}',1)
+                k=km[0].strip()
+                if ignorecase:
+                    k=k.lower()
+                v=casedDict.get(k,'')
+                ret.append(v)
+                if len(km)>1:
+                    ret.append(km[1])
+        return ''.join(ret)
+
+    def _subLinux(self,
+        s:str,
+        casedDict:typing.Dict[str,str],
+        ignorecase:bool
+        )->str:
+        """
+        substitute linux shell values in the string
+        """
+        if s.startswith('~/'):
+            s='$HOME'+s[1:]
+        ret=[]
+        for part in s.split('$'):
+            if not ret:
+                ret.append(part)
+            else:
+                if part[0]=='{':
+                    km=part[1:].split('}',1)
+                else:
+                    km=part.split(maxsplit=1)
+                k=km[0].strip()
+                if ignorecase:
+                    k=k.lower()
+                v=casedDict.get(k,'')
+                ret.append(v)
+                if len(km)>1:
+                    ret.append(km[1])
+        return ''.join(ret)
+
+    def _subWindows(self,
+        s:str,
+        casedDict:typing.Dict[str,str],
+        ignorecase:bool
+        )->str:
+        """
+        substitute windows shell values in the string
+        """
+        ret=[]
+        outside=True
+        for part in s.split('%'):
+            if outside:
+                ret.append(part)
+                outside=False
+            else:
+                k=part.strip()
+                if ignorecase:
+                    k=part.lower()
+                v=casedDict.get(k,'')
+                ret.append(v)
+        return ''.join(ret)
 
     @property
     def jsonString(self)->str:
@@ -371,3 +528,42 @@ environ=EnvVariables(scope='application')
 EnvironmentVariables=environ
 environmentVariables=environ
 env=environ
+
+@typing.overload
+def expandvars(
+    target:str,
+    subsitutionFormat:SUBSTITUTION_FORMAT='all',
+    override:typing.Optional[typing.Dict[str,typing.Any]]=None,
+    ignorecase:typing.Optional[bool]=None
+    )->str:
+    ...
+@typing.overload
+def expandvars(
+    target:typing.Iterable[str],
+    subsitutionFormat:SUBSTITUTION_FORMAT='all',
+    override:typing.Optional[typing.Dict[str,typing.Any]]=None,
+    ignorecase:typing.Optional[bool]=None
+    )->typing.Iterable[str]:
+    ...
+def expandvars(
+    target:typing.Union[str,typing.Iterable[str]],
+    subsitutionFormat:SUBSTITUTION_FORMAT='all',
+    override:typing.Optional[typing.Dict[str,typing.Any]]=None,
+    ignorecase:typing.Optional[bool]=None
+    )->typing.Union[str,typing.Iterable[str]]:
+    r"""
+    Substitute these environment variables into one or more strings
+
+    :target: a target string, or list of strings, to substitute in
+    :substitutionFormat: can accept any one of
+        'fstring': like "you are {age} years old"
+        'windows': like "you are %AGE% years old"
+        'linux': like "you are ${AGE} or $AGE years old"
+        'all': all of the above (default)
+    :overrode: a dict of values to override existing shell parameters
+        in the replacement
+    :ignorecase: self-explanitory, but notice that passing None
+        takes the system policy, that is windows is ignorecase=True,
+        everybody else is ignorecase=False
+    """
+    return environ.expandvars(target,subsitutionFormat,override,ignorecase)
